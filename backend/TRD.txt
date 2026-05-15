@@ -1,0 +1,232 @@
+TRD � Marketplace Universidad de La Sabana 
+1. Descripci�n General 
+El sistema consiste en un marketplace web institucional para la Universidad de La Sabana, donde estudiantes pueden publicar, comprar y gestionar productos dentro de la comunidad universitaria. 
+El sistema debe ofrecer una experiencia completa de compra tipo e-commerce, adaptada a un entorno acad�mico, con �nfasis en usabilidad, confianza y comunicaci�n directa entre usuarios. 
+ 
+2. Objetivos del Sistema 
+..Facilitar la compra/venta entre estudiantes. 
+..Centralizar publicaciones dentro del entorno universitario. 
+..Garantizar confianza mediante rese�as y perfiles. 
+..Permitir moderaci�n institucional (administrador). 
+..Ofrecer comunicaci�n directa (chat + notificaciones). 
+
+ 
+3. Roles del Sistema 
+3.1 Comprador 
+..Navega productos. 
+..Compra productos. 
+..Contacta vendedores. 
+..Deja rese�as. 
+..Recibe notificaciones. 
+
+3.2 Vendedor (extiende Comprador) 
+Decisi�n clave: Todo vendedor es tambi�n comprador (modelo de herencia o composici�n de roles) 
+..Publica productos. 
+..Gestiona inventario. 
+..Responde mensajes. 
+..Recibe rese�as. 
+
+3.3 Administrador 
+..Modera publicaciones. 
+..Gestiona usuarios. 
+..Puede eliminar contenido. 
+..Supervisa reportes. 
+..Accede a m�tricas b�sicas. 
+
+ 
+4. Alcance Funcional 
+4.1 Gesti�n de Usuarios 
+..Registro (correo institucional). 
+..Login / Logout. 
+..Perfil de usuario:. 
+..Nombre. 
+..Carrera (opcional). 
+..Foto. 
+..Reputaci�n. 
+
+
+..Conversi�n autom�tica a vendedor (flag o rol). 
+
+ 
+4.2 Gesti�n de Productos 
+..Crear producto:. 
+..T�tulo. 
+..Descripci�n. 
+..Precio. 
+..Categor�a. 
+..Im�genes. 
+..Estado (nuevo/usado). 
+
+
+..Editar / eliminar producto. 
+..Listado de productos. 
+..Filtros:. 
+..Precio. 
+..Categor�a. 
+..Estado. 
+
+
+..B�squeda por texto. 
+
+ 
+4.3 Flujo de Compra 
+Nota: Se recomienda simular pago (no integrar pasarela real). 
+..Agregar al carrito. 
+..Confirmar compra. 
+..Generar orden. 
+..Estado de orden:. 
+..Pendiente. 
+..Confirmada. 
+..Entregada. 
+
+
+..Historial de compras. 
+
+ 
+4.4 Sistema de Chat 
+..Comunicaci�n directa comprador . vendedor. 
+..Basado en producto. 
+..Mensajes en tiempo real (ideal) o polling. 
+..Historial de conversaciones. 
+
+ 
+4.5 Sistema de Rese�as 
+..Comprador califica vendedor:. 
+..Rating (1�5). 
+..Comentario. 
+
+
+..Promedio visible en perfil. 
+..Restricci�n:. 
+..Solo usuarios que compraron pueden rese�ar. 
+
+
+
+ 
+4.6 Notificaciones 
+Eventos clave: 
+..Nuevo mensaje. 
+..Compra realizada. 
+..Cambio de estado de orden. 
+..Nueva rese�a. 
+
+Tipos: 
+..In-app (obligatorio). 
+..Email (opcional). 
+
+ 
+4.7 Panel de Administrador 
+..Dashboard simple:. 
+..Usuarios registrados. 
+..Productos activos. 
+
+
+..Moderaci�n:. 
+..Eliminar productos. 
+..Suspender usuarios. 
+
+
+..Gesti�n de reportes:. 
+..Usuarios pueden reportar productos o perfiles. 
+
+
+
+ 
+5. Modelo de Datos (Alto Nivel) 
+Entidades principales: 
+..User. 
+..Role. 
+..Product. 
+..Order. 
+..OrderItem. 
+..Review. 
+..Message. 
+..Conversation. 
+..Notification. 
+..Report. 
+
+ 
+Relaciones clave: 
+..User 1�N Products. 
+..User 1�N Orders. 
+..Product 1�N Reviews. 
+..Conversation 1�N Messages. 
+..User 1�N Notifications. 
+
+ 
+6. Requisitos No Funcionales 
+6.1 Usabilidad 
+..UI intuitiva (tipo MercadoLibre / Facebook Marketplace). 
+..Responsive (mobile-first). 
+
+6.2 Performance 
+..Carga de p�gina < 2s. 
+..Paginaci�n en listados. 
+
+6.3 Seguridad 
+..Autenticaci�n JWT o sesi�n. 
+..Validaci�n de inputs. 
+..Protecci�n b�sica contra XSS. 
+
+6.4 Escalabilidad 
+..Separaci�n frontend/backend. 
+..API REST. 
+
+ 
+7. Arquitectura Sugerida 
+Frontend 
+..React.js / Next.js. 
+..Tailwind CSS. 
+..Manejo de estado (Context / Redux opcional). 
+
+Backend 
+..Node.js + Express. 
+..API REST. 
+
+Base de Datos 
+..PostgreSQL o MongoDB. 
+
+Tiempo Real 
+..WebSockets (Socket.io) para chat y notificaciones. 
+
+ 
+8. Branding � Universidad de La Sabana 
+Lineamientos: 
+..Colores institucionales:. 
+..Azul oscuro. 
+..Blanco. 
+..Dorado (acentos). 
+
+
+..Tipograf�a limpia y acad�mica. 
+..Uso del logo institucional (seg�n manual de marca). 
+
+UX Tone: 
+..Profesional pero cercano. 
+..Enfocado en comunidad universitaria. 
+
+ 
+9. Casos de Uso Clave 
+1..Usuario se registra . compra producto. 
+2..Usuario publica producto . recibe mensaje. 
+3..Compra completada . usuario deja rese�a. 
+4..Admin elimina producto reportado. 
+
+ 
+10. MVP (Entrega sugerida) 
+Obligatorio: 
+..CRUD de productos. 
+..Autenticaci�n. 
+..Roles. 
+..Chat b�sico. 
+..Rese�as. 
+..Notificaciones in-app simples. 
+
+Opcional (bonus): 
+..WebSockets reales. 
+..Filtros avanzados. 
+..Dashboard admin completo. 
+
+ 
+ 
+
