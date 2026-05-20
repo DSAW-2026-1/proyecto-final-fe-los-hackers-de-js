@@ -1,3 +1,4 @@
+// TODO: File possibly unused, delete if unused
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
@@ -15,7 +16,6 @@ type Message = {
 };
 
 // Conexión fuera del componente para evitar duplicados
-// TODO: Move API communication logic to existing api.ts, where all API calls and stuff should be
 const socket = io(FULL_URL);
 
 export function ChatRealTime({ currentUser }: { currentUser: { id: string } | null }) {

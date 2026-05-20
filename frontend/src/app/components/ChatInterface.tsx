@@ -1,26 +1,200 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Avatar } from './ui/avatar';
 import { ScrollArea } from './ui/scroll-area';
-import { Send, Paperclip, MoreVertical } from 'lucide-react';
+import { Send, Paperclip, MoreVertical, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import useConversationSocket from '../services/useConversationSocket';
+import ConversationsList from './ConversationsList';
+import { useLocation } from 'react-router';
+import { apiRequest } from '../services/api';
+import Base64ImageLoader from './Base64ImageLoader';
 
-const CONVERSATIONS = [
-  { id: 1, name: 'Ana Rodríguez', message: 'Hola, ¿el MacBook aún está...', time: '10:30 AM', unread: 2, online: true },
-  { id: 2, name: 'Carlos López', message: '¿Puedes hacerme un descuent...', time: 'Ayer', unread: 0, online: false },
-  { id: 3, name: 'María García', message: 'Perfecto, nos vemos mañana', time: 'Ayer', unread: 0, online: true },
-];
+// Messages are managed via socket hook (optimistic updates).
 
-const MESSAGES = [
-  { id: 1, sender: 'Ana Rodríguez', message: 'Hola! Vi tu publicación del MacBook', time: '10:15 AM', isOwn: false },
-  { id: 2, sender: 'Tú', message: 'Hola Ana! Sí, aún está disponible', time: '10:16 AM', isOwn: true },
-  { id: 3, sender: 'Ana Rodríguez', message: '¿Cuánto tiempo de uso tiene?', time: '10:17 AM', isOwn: false },
-  { id: 4, sender: 'Tú', message: 'Aproximadamente 1 año. La batería está en perfecto estado al 92%', time: '10:18 AM', isOwn: true },
-  { id: 5, sender: 'Ana Rodríguez', message: '¿Podríamos vernos en el campus para verlo?', time: '10:30 AM', isOwn: false },
-];
+interface ConversationUser {
+  name?: string;
+  photo?: any;
+  avatar?: any;
+  username?: string;
+}
+
+interface ConversationProduct {
+  id?: string;
+  image?: any;
+  images?: any;
+  title?: string;
+  name?: string;
+  price?: string | number;
+}
+
+interface Conversation {
+  id: string | number;
+  _id?: string | number;
+  conversationId?: string | number;
+  otherUser?: ConversationUser | null;
+  product?: ConversationProduct | null;
+}
+
+interface APIMessage {
+  _id?: string;
+  id?: string;
+  content?: string;
+  senderId?: string;
+  createdAt?: string;
+}
 
 export function ChatInterface() {
+  const [input, setInput] = useState('');
+  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
+  const { messages, send, setMessages } = useConversationSocket(selectedConv?.id ?? selectedConv?._id ?? null);
+
+  // Load history when a conversation is selected
+  const { uid } = useAuth();
+  const location = useLocation();
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll when messages update
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // If URL contains ?open=<chatId> auto-open that conversation
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || '');
+    const open = params.get('open');
+    let mounted = true;
+    (async () => {
+      try {
+        if (open) {
+          // fetch conversation metadata
+          const conv = await apiRequest(`/api/chat/${open}`);
+          if (mounted && conv) {
+            const normalized: Conversation = {
+              id: conv.id ?? conv._id ?? conv.conversationId ?? open,
+              otherUser: conv.otherUser ?? conv.participant ?? conv.user ?? null,
+              product: conv.product ?? null,
+            };
+            setSelectedConv(normalized);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to auto-open conversation from URL', e);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [location.search]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!selectedConv) return;
+      try {
+        const chatId = selectedConv.id ?? selectedConv._id ?? selectedConv.conversationId;
+        const data = await apiRequest(`/api/chat/${chatId}/messages?limit=100&offset=0`);
+        if (!mounted) return;
+        
+        // Normalize messages safely
+        const rawList = Array.isArray(data) ? data : (data?.messages || []);
+        const msgs = rawList.map((m: APIMessage) => ({
+          id: m._id ?? m.id,
+          message: m.content || '',
+          sender: m.senderId,
+          time: m.createdAt,
+          isOwn: m.senderId === uid
+        }));
+        setMessages(msgs);
+      } catch (e) {
+        console.error('Failed to load conversation messages', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedConv, setMessages, uid]);
+
+  // Utility to format ISO timestamps to HH:MM AM/PM
+  const formatMsgTime = (timestamp?: string) => {
+    if (!timestamp) return '';
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return timestamp;
+    }
+  };
+
+  const handleSend = () => {
+    if (input.trim()) {
+      send(input.trim());
+      setInput('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSend();
+    }
+  };
+
+  const getSingleImageString = (imgData: any): string | undefined => {
+    if (!imgData) return undefined;
+    if (typeof imgData === 'string') return imgData;
+    if (Array.isArray(imgData)) {
+      for (const item of imgData) {
+        const res = getSingleImageString(item);
+        if (res) return res;
+      }
+    }
+    if (typeof imgData === 'object') {
+      const values = Object.values(imgData);
+      for (const val of values) {
+        const res = getSingleImageString(val);
+        if (res) return res;
+      }
+    }
+    return undefined;
+  };
+
+  const renderPhoto = (photoData?: any, name?: string) => {
+    const singlePhoto = getSingleImageString(photoData);
+    if (!singlePhoto) {
+      const initials = (name || 'US').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
+      return (
+        <div className="w-full h-full bg-primary/20 flex items-center justify-center font-medium text-primary">
+          {initials}
+        </div>
+      );
+    }
+
+    return (
+      <Base64ImageLoader
+        data={singlePhoto}
+        alt={name || 'Avatar'}
+        className="w-full h-full object-cover"
+      />
+    );
+  };
+
+  const renderProductImage = (image?: any, title?: string) => {
+    const singleImage = getSingleImageString(image);
+    if (!singleImage) {
+      return <div className="w-full h-full bg-muted animate-pulse" />;
+    }
+
+    return (
+      <Base64ImageLoader
+        data={singleImage}
+        alt={title || 'Product'}
+        className="w-full h-full object-cover"
+      />
+    );
+  };
+
   return (
     <div className="bg-muted/30 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,122 +204,97 @@ export function ChatInterface() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 lg:h-[600px]">
-          <Card className="lg:col-span-1 p-4 flex flex-col h-[400px] lg:h-full overflow-hidden">
-            <div className="mb-4">
-              <Input placeholder="Buscar conversaciones..." />
-            </div>
+          <ConversationsList onSelect={(conv: Conversation) => setSelectedConv(conv)} />
 
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="space-y-2">
-                {CONVERSATIONS.map((conv) => (
-                  <div
-                    key={conv.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      conv.id === 1 ? 'bg-primary/10' : 'hover:bg-muted'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="relative">
-                        <Avatar className="w-12 h-12">
-                          <div className="w-full h-full bg-primary/20 flex items-center justify-center font-medium text-primary">
-                            {conv.name.split(' ').map(n => n[0]).join('')}
-                          </div>
-                        </Avatar>
-                        {conv.online && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium truncate">{conv.name}</h4>
-                          <span className="text-xs text-muted-foreground">{conv.time}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-muted-foreground truncate">{conv.message}</p>
-                          {conv.unread > 0 && (
-                            <Badge className="ml-2 bg-accent">{conv.unread}</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </Card>
-
-          <Card className="lg:col-span-2 flex flex-col h-[500px] lg:h-full overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="w-10 h-10">
-                  <div className="w-full h-full bg-primary/20 flex items-center justify-center font-medium text-primary">
-                    AR
-                  </div>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">Ana Rodríguez</h3>
-                  <p className="text-sm text-green-600">En línea</p>
+          {!selectedConv ? (
+            <Card className="lg:col-span-2 flex flex-col h-[500px] lg:h-full justify-center items-center p-8 bg-card text-center border-dashed border-2 border-muted/80">
+              <div className="max-w-md flex flex-col items-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
+                  <MessageCircle className="w-8 h-8" />
                 </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Mensajes</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Selecciona una conversación de la lista de la izquierda para ver tus mensajes, negociar y coordinar la entrega en el campus de La Sabana.
+                </p>
               </div>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="p-4 bg-muted/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded overflow-hidden">
-                  <div className="w-full h-full bg-muted" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">MacBook Air M1 2020</p>
-                  <p className="text-sm text-muted-foreground">$3,200,000 COP</p>
-                </div>
-              </div>
-            </div>
-
-            <ScrollArea className="flex-1 min-h-0 p-4">
-              <div className="space-y-4">
-                {MESSAGES.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[70%] ${msg.isOwn ? 'order-2' : 'order-1'}`}>
-                      <div
-                        className={`px-4 py-2 rounded-2xl ${
-                          msg.isOwn
-                            ? 'bg-primary text-white rounded-br-none'
-                            : 'bg-white border rounded-bl-none'
-                        }`}
-                      >
-                        <p className="text-sm">{msg.message}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 px-2">
-                        {msg.time}
-                      </p>
-                    </div>
+            </Card>
+          ) : (
+            <Card className="lg:col-span-2 flex flex-col h-[500px] lg:h-full overflow-hidden">
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    {renderPhoto(selectedConv?.otherUser?.photo, selectedConv?.otherUser?.name)}
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">{selectedConv?.otherUser?.name || 'Usuario'}</h3>
+                    <p className="text-sm text-green-600">En línea</p>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            <div className="p-4 border-t">
-              <div className="flex items-center gap-2">
+                </div>
                 <Button variant="ghost" size="icon">
-                  <Paperclip className="w-5 h-5" />
-                </Button>
-                <Input
-                  placeholder="Escribe un mensaje..."
-                  className="flex-1"
-                />
-                <Button size="icon" className="bg-primary">
-                  <Send className="w-5 h-5" />
+                  <MoreVertical className="w-5 h-5" />
                 </Button>
               </div>
-            </div>
-          </Card>
+
+              <div className="p-4 bg-muted/50 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white rounded overflow-hidden">
+                    {renderProductImage(selectedConv?.product?.image ?? selectedConv?.product?.images, selectedConv?.product?.title)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{selectedConv?.product?.title || ''}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedConv?.product?.price ? `$${Number(selectedConv.product.price).toLocaleString('es-CO')} COP` : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1 min-h-0 p-4">
+                <div className="space-y-4">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id ?? msg.tempId}
+                      className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[70%] ${msg.isOwn ? 'order-2' : 'order-1'}`}>
+                        <div
+                          className={`px-4 py-2 rounded-2xl ${
+                            msg.isOwn
+                              ? 'bg-primary text-white rounded-br-none'
+                              : 'bg-white border rounded-bl-none'
+                          }`}
+                        >
+                          <p className="text-sm">{msg.message}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 px-2">
+                          {msg.time ? formatMsgTime(msg.time) : (msg.status === 'sending' ? 'Enviando...' : '')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={bottomRef} />
+                </div>
+              </ScrollArea>
+
+              <div className="p-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon">
+                    <Paperclip className="w-5 h-5" />
+                  </Button>
+                  <Input
+                    placeholder="Escribe un mensaje..."
+                    className="flex-1"
+                    value={input}
+                    onChange={(e) => setInput((e.target as HTMLInputElement).value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <Button size="icon" className="bg-primary" onClick={handleSend}>
+                    <Send className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>
