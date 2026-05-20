@@ -140,3 +140,4 @@ frontend/.env.normal
 frontend/.env
 
 /frontend/src/imports
+frontend/src/app/components/ChatInterface.old.tsx

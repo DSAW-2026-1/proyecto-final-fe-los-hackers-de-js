@@ -81,7 +81,7 @@ export default function App() {
               <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
 
               {/* Communication & Utils */}
-              <Route path="/chat" element={<ChatInterface />} />
+              <Route path="/chat" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
               {/* Reporting users and products */}
