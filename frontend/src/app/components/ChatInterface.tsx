@@ -221,7 +221,7 @@ export function ChatInterface() {
               </div>
             </Card>
           ) : (
-            <Card className="lg:col-span-2 flex flex-col h-[500px] lg:h-full overflow-hidden">
+            <Card className="lg:col-span-2 flex flex-col h-[500px] lg:h-full overflow-hidden gap-0">
               <div className="p-4 border-b flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
