@@ -59,7 +59,7 @@ export default function useConversationSocket(chatId: any) {
         time: p.createdAt ?? p.time ?? p.timestamp ?? null,
         chatId: payloadConvId,
       } as any;
-      console.log(incoming)
+
       // update lastChecked to newest timestamp
       try {
         if (incoming.time) lastCheckedRef.current = new Date(String(incoming.time)).toISOString();
