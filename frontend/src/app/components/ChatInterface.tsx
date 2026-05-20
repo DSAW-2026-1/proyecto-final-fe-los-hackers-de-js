@@ -260,13 +260,13 @@ export function ChatInterface() {
                     >
                       <div className={`max-w-[70%] ${msg.isOwn ? 'order-2' : 'order-1'}`}>
                         <div
-                          className={`px-4 py-2 rounded-2xl ${
+                          className={`px-4 py-2 rounded-2xl break-words whitespace-pre-wrap ${
                             msg.isOwn
                               ? 'bg-primary text-white rounded-br-none'
                               : 'bg-white border rounded-bl-none'
                           }`}
                         >
-                          <p className="text-sm">{msg.message}</p>
+                          <p className="text-sm break-words whitespace-pre-wrap">{msg.message}</p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 px-2">
                           {msg.time ? formatMsgTime(msg.time) : (msg.status === 'sending' ? 'Enviando...' : '')}
