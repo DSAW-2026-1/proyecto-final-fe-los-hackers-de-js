@@ -26,6 +26,8 @@ import { useCart } from '../context/CartContext';
 import { NotFound } from './NotFound';
 import Base64ImageLoader from './Base64ImageLoader';
 import { ApiError } from '../services/api';
+import { StartConversationModal } from './StartConversationModal';
+import { toast } from 'sonner';
 import { useCallback } from 'react';
 
 export function ProductDetail() {
@@ -39,6 +41,7 @@ export function ProductDetail() {
   const [error, setError] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isModalOpen, setModalOpen] = useState(false);
 
   // Reviews state
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -351,10 +354,22 @@ export function ProductDetail() {
                     <ShoppingCart className="w-5 h-5 mr-2" />
                     Agregar al Carrito
                   </Button>
-                  <Button size="lg" variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5">
+                  <Button size="lg" variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5" onClick={() => {
+                      if (!uid) return navigate('/login');
+                      if (uid === product.sellerID) { toast.error('No puedes iniciar una conversación contigo mismo.'); return; }
+                      setModalOpen(true);
+                    }}>
                     <MessageCircle className="w-5 h-5 mr-2" />
                     Contactar
                   </Button>
+
+                  <StartConversationModal
+                    product={{ id: productID || '', name: product.name }}
+                    sellerId={product.sellerID}
+                    currentUser={uid ? { id: uid } : null}
+                    isOpen={isModalOpen}
+                    onClose={() => setModalOpen(false)}
+                  />
                 </>
               )}
             </div>
