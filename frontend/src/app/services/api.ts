@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 const PORT = import.meta.env.VITE_API_PORT || null;
 
-const FULL_URL = (PORT)? `${BASE_URL}:${PORT}` : `${BASE_URL}`;
+export const FULL_URL = (PORT)? `${BASE_URL}:${PORT}` : `${BASE_URL}`;
 export const API_URL = (PORT)? `${BASE_URL}:${PORT}/api` : `${BASE_URL}/api`;
 
 export interface ApiError extends Error {

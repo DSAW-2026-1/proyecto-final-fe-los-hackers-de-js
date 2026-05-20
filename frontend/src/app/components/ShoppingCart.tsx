@@ -151,9 +151,9 @@ export function ShoppingCart() {
               </Card>
             ) : (
               products.map((item) => (
-                <Card key={item.productID} className="p-6">
-                  <div className="flex gap-6">
-                    <div className="w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                <Card key={item.productID} className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                    <div className="w-full sm:w-32 h-48 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
                       <Base64ImageLoader
                         data={item.images[0]}
                         alt={item.name}
@@ -165,7 +165,7 @@ export function ShoppingCart() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <h3 
-                            className="font-semibold text-lg mb-1 line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+                            className="font-semibold text-base sm:text-lg mb-1 line-clamp-2 cursor-pointer hover:text-primary transition-colors"
                             onClick={() => navigate(`/product/${item.productID}`)}
                           >
                             {item.name}
@@ -173,51 +173,53 @@ export function ShoppingCart() {
                           <p className="text-sm text-muted-foreground mb-2">
                             Vendido por {sellerNames[item.sellerID] || item.sellerID}
                           </p>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-[10px] sm:text-xs">
                             {item.condition}
                           </Badge>
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 -mr-2"
                           onClick={() => removeFromCart(item.cartIndex)}
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
                       </div>
 
-                      <div className="flex items-end justify-between mt-4">
-                        <div className="flex items-center gap-3">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => updateAmount(item.cartIndex, item.amount - 1, item.stock)}
-                            disabled={item.amount <= 1}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <span className="font-medium w-8 text-center">{item.amount}</span>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => updateAmount(item.cartIndex, item.amount + 1, item.stock)}
-                            disabled={item.amount >= item.stock}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
+                      <div className="flex flex-wrap items-end justify-between mt-4 gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="flex items-center border rounded-md">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 rounded-none border-r"
+                              onClick={() => updateAmount(item.cartIndex, item.amount - 1, item.stock)}
+                              disabled={item.amount <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="font-medium w-8 text-center text-sm">{item.amount}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 rounded-none border-l"
+                              onClick={() => updateAmount(item.cartIndex, item.amount + 1, item.stock)}
+                              disabled={item.amount >= item.stock}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
                           {item.amount >= item.stock && (
-                            <span className="text-[10px] text-amber-600 font-medium">Límite alcanzado</span>
+                            <span className="text-[10px] text-amber-600 font-medium leading-tight max-w-[80px]">Límite alcanzado</span>
                           )}
                         </div>
 
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-primary">
+                          <p className="text-xl sm:text-2xl font-bold text-primary">
                             ${(item.price * item.amount).toLocaleString('es-CO')}
                           </p>
-                          <p className="text-xs text-muted-foreground">COP</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">COP</p>
                         </div>
                       </div>
                     </div>
@@ -248,10 +250,10 @@ export function ShoppingCart() {
 
                 <Separator />
 
-                <div className="flex items-center justify-between text-lg">
+                <div className="flex items-center justify-between text-base sm:text-lg">
                   <span className="font-semibold">Total</span>
                   <div className="text-right">
-                    <span className="font-bold text-primary text-2xl">
+                    <span className="font-bold text-primary text-xl sm:text-2xl">
                       ${total.toLocaleString('es-CO')}
                     </span>
                     <p className="text-xs text-muted-foreground">COP</p>

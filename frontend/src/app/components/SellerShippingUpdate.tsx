@@ -10,6 +10,7 @@ import { productService, ShippingResponseItem, Product } from '../services/produ
 import { userService, UserProfileResponse } from '../services/userService'
 import { toast } from 'sonner'
 import Base64ImageLoader from "./Base64ImageLoader.tsx";
+import { ContactBuyerModal } from './ContactBuyerModal'
 
 export function SellerShippingUpdate() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export function SellerShippingUpdate() {
   const [buyer, setBuyer] = useState<UserProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -216,11 +218,13 @@ export function SellerShippingUpdate() {
                       </div>
                       
                       <div className="pt-3 border-t border-primary/10">
-                        <Button variant="outline" asChild className="w-full">
-                          <Link to={`/chat?user=${shipping.buyerID}`}>
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Enviar mensaje al comprador
-                          </Link>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => setIsChatModalOpen(true)}
+                        >
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Enviar mensaje al comprador
                         </Button>
                       </div>
                     </div>
@@ -279,6 +283,15 @@ export function SellerShippingUpdate() {
           </div>
         </Card>
       </div>
+      {shipping && product && buyer && (
+        <ContactBuyerModal
+          saleId={shipping.saleID}
+          product={{ id: product.id, name: product.name }}
+          buyer={{ uid: buyer.uid || buyer.id, id: buyer.id, username: buyer.username }}
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

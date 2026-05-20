@@ -1,52 +1,75 @@
 # Unisabana Marketplace - Implementation Roadmap
 
-**Date:** 2026-04-25
+**Date:** 2026-05-12
 **Language:** Spanish (Colombia)
 **Context:** Institutional marketplace for Universidad de La Sabana.
 
-## 🚀 Current State: Transition to Functional Frontend
-The project is pivoting from a high-fidelity UI prototype to a structured, functional frontend. All major view components exist as prototypes and are now being integrated into a cohesive application flow that adheres to the `TRD.txt` requirements.
+## 🚀 Current State: Functional Integration & Refinement
+The project has successfully transitioned from prototypes to a functional application. Core flows (Auth, Search, Cart, Profile) are now integrated with a real service layer and routing.
 
 ### 🎯 Primary Goal
-Convert existing design primitives and mockups into a production-ready institutional marketplace. This involves implementing robust routing, state management, and preparation for backend integration (API/Firebase), ensuring every functional requirement of the TRD is met.
+Finalize the institutional commerce experience by hardening the moderation flows, improving mobile UX, and ensures consistency between the frontend and the transactional API responses.
 
 ### 🎨 Branding & Design Foundations
-- **Official Logos:** Centralized in `/res/images/`:
-  - `unisabana_logo_blue.png` (Main Navigation)
-  - `unisabana_logo_white.png` (Institutional Footer)
-  - `unisabana_logo_with_text_blue.png` (Auth Flow)
+- **Official Logos:** Centralized in `/res/images/` (Logo Blue, Logo White, Logo with Text).
 - **Institutional Context:**
-  - **Career Mapping:** "Ingeniería Informática" is the exclusive identifier for IT-related students.
-  - **Administrative Tone:** Using "Rechazar" for moderation and institutional safety terminology.
-  - **Localization:** COP pricing via `toLocaleString('es-CO')`.
+  - **Career Mapping:** "Ingeniería Informática" and other Sabana-specific identifiers.
+  - **Administrative Tone:** "Rechazar" for moderation; "Campus Safety Tips" branding.
 - **UI System:**
   - **Framework:** React 18 + Vite + Tailwind CSS.
   - **Library:** **shadcn/ui** (based on Radix UI).
-  - **Motion:** `motion/react` for all meaningful transitions.
+  - **Motion:** `motion/react` for smooth state transitions and route changes.
+- **Mobile First:** Specific responsive layouts for Shopping Cart (stacking items) and Product Search (Sheet-based filters).
 
-## 📁 Core Application Structure (Functional Focus)
-- **Core Architecture:** Centralized routing in `App.tsx` (transitioning from flat list to conditional/route-based rendering).
-- **Domain Modules:**
-  - **Identity:** `Login.tsx`, `Register.tsx`, `UserProfile.tsx`.
-  - **Commerce:** `ProductSearch.tsx` (Advanced filtering), `ProductDetail.tsx`, `ShoppingCart.tsx`, `Checkout.tsx`.
-  - **Inventory:** `SellerDashboard.tsx`, `CreateProduct.tsx`, `EditProduct.tsx`.
-  - **Governance:** `AdminDashboard.tsx`, `AdminReportView.tsx` (Moderation flow).
-- **Communication:** `ChatInterface.tsx`, `Notifications.tsx`.
+## 📁 Core Application Structure (Functional)
+- **Navigation:** Adaptive header with guest/profile dropdowns based on auth state.
+- **Identity:** `UserProfile.tsx` now fetches real reviews, resolving buyer profile data and product context dynamically.
+- **Commerce:** 
+  - `ProductSearch.tsx`: Advanced filter drawer for mobile.
+  - `ProductDetail.tsx`: Seller card linking to profile.
+  - `ShoppingCart.tsx`: Fully responsive list with quantity management.
+- **Inventory:** `SellerDashboard.tsx` uses real metrics (Active Orders) from API integration.
 
 ## 🛠️ Technical Baseline
 - **Build Command:** `npm run dev` (Port 3000).
-- **Style Invariant:** Tailwind-only styling managed via `src/styles/index.css`.
-- **Iconography:** Strict use of `lucide-react`.
+- **Service Layer:** `api.ts` (Fetch wrapper) + specific services (`userService.ts`, `productService.ts`).
+- **Data Safety:** Handling of edge cases like deleted products in reviews or missing seller photos.
+- **Linting:** Strict `eslint` compliance for clean hooks and dependency management.
 
-## 📍 Immediate Priorities (Functional Migration)
-1. **Dynamic Routing:** Implement `react-router` to separate the prototypes into logical user paths.
-2. **State Management:** Implement a global state (Context/Zustand) for Cart, Auth, and Notifications.
-3. **Data Integration:** Replace `MOCK_DATA` constants with a structured service layer (preparing for the REST API/Firestore).
-4. **Safety Branding:** Integrate "Campus Safety Tips" into search and product views as per TRD usablity guidelines.
+## 📍 Next Priorities
+1. **Moderation Flow:** Finalize the `AdminDashboard.tsx` and report handling as per TRD.
+2. **Real-time Comms:** Implement the chat interface signaling logic.
+3. **Checkout Finalization:** Connect the cart to a transactional state for order creation.
+4. **Institutional Security:** Verify institutional email validation logic in the registration flow.
 
 ## 🚧 Status Checklist
 - [x] High-fidelity UI Prototypes (V1 Complete)
-- [ ] Centralized Routing & Navigation Logic (In Progress)
-- [ ] Global Store (Cart/Auth)
-- [ ] API/Firebase Service Layer
-- [ ] Final Accessibility & Performance Audit
+- [x] Dynamic Routing & Navigation Logic
+- [x] Service Layer Integration (User Profile, Reviews, Products)
+- [x] Mobile Responsiveness Audit (Cart, Search)
+- [ ] Final Moderation & Accessibility Audit
+
+---
+
+## 🛰️ Frontend state (2026-05-20)
+
+Summary of recent chat/messaging work:
+
+- Chat UI consolidated under /chat (ChatInterface). Conversations load in-place; selection no longer navigates away to a separate route.
+- Navigation now uses /chat?open=<chatId> to open a conversation. Legacy /messages/:chatId route remains but is deprecated.
+- Components changed: StartConversationModal, ContactSellerModal, ConversationsList, ChatInterface, MessagesView, useConversationSocket, socketService.
+- WebSocket client defaults to VITE_WS_URL (if unset defaults to http://localhost:3000 in dev). Payloads standardized to use chatId.
+- Transparent polling fallback implemented: when WS disconnects, useConversationSocket polls /api/chat/:chatId/messages/polling every 5s; logs lifecycle to console and stops polling when WS reconnects.
+- Frontend apiRequest adds Authorization: Bearer <token> from localStorage 'token' for authenticated requests; ensure tokens are present in localStorage during manual testing.
+
+Dev notes & how to run
+- Start backend first (ensure MONGODB_URI + JWT_SECRET are configured, backend default port 3000).
+- Frontend: npm install (once), set .env (optional) VITE_API_BASE_URL, VITE_API_PORT, VITE_WS_URL, then npm run dev.
+- To test messaging flows: open two browser tabs with different tokens and verify WS messages; simulate WS down to verify polling fallback.
+
+Cleanup suggestions
+- Remove MessagesRoute (/messages) after migrating any remaining callers.
+- Add E2E test coverage for WS fallback and chat open-from-product flows.
+
+Contact
+- Changes applied during Copilot session on 2026-05-20.

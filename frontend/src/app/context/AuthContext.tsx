@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import { authService } from '../services/authService';
+import { disconnectSocket } from '../services/socketService';
 
 interface UserInfo {
   username: string;
@@ -30,6 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
 
   const logout = useCallback((showToast: boolean = true) => {
+    try {
+      disconnectSocket();
+    } catch (e) {
+      console.error('Error disconnecting socket on logout', e);
+    }
     authService.logout();
     setIsAuthenticated(false);
     setIsSeller(false);
