@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card } from './ui/card';
 import { Avatar } from './ui/avatar';
 import { ScrollArea } from './ui/scroll-area';
@@ -7,6 +7,8 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { apiRequest } from '../services/api';
 import { useNavigate, useLocation } from 'react-router';
+import { on as socketOn, off as socketOff, getSocket } from '../services/socketService';
+import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
@@ -75,6 +77,8 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
   const navigate = useNavigate();
   const location = useLocation();
   const { decrementUnreadCount } = useNotifications();
+  const { uid } = useAuth();
+  const pollRef = useRef<number | null>(null);
 
   const getSingleImageString = (imgData: any): string | undefined => {
     if (!imgData) return undefined;
@@ -118,6 +122,77 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
     return () => { mounted = false; };
   }, []);
 
+  // Fetch per-chat unread counts and keep them updated (polling fallback when WS disconnected)
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchUnread = async () => {
+      try {
+        const res = await apiRequest('/api/chat/unread');
+        const map = new Map<string, number>();
+
+        if (Array.isArray(res)) {
+          for (const it of res) {
+            const id = String(it?.chatId ?? it?.conversationId ?? it?.id ?? it?.conversation_id ?? '');
+            map.set(id, Number(it?.unreadCount ?? it?.unread ?? it?.count ?? 0));
+          }
+        } else if (res && typeof res === 'object') {
+          if (Array.isArray((res as any).perChat)) {
+            for (const it of (res as any).perChat) {
+              const id = String(it?.chatId ?? it?.conversationId ?? it?.id ?? '');
+              map.set(id, Number(it?.unreadCount ?? it?.unread ?? 0));
+            }
+          } else {
+            for (const [k, v] of Object.entries(res as Record<string, any>)) {
+              // support map-like responses { chatId: count }
+              if (typeof v === 'number') map.set(String(k), v as number);
+              else map.set(String(k), Number((v as any)?.unreadCount ?? (v as any)?.unread ?? 0));
+            }
+          }
+        }
+
+        if (!mounted) return;
+        setConvs((prev) => prev.map((c) => ({ ...c, unread: map.get(String(c.id)) ?? Number(c.unread || 0) })));
+      } catch (err) {
+        // Treat missing endpoint or errors as zero counts and rely on retry via polling
+        console.warn('ConversationsList: could not fetch unread counts', err);
+      }
+    };
+
+    fetchUnread();
+
+    const startPoll = () => {
+      if (pollRef.current != null) return;
+      try {
+        const s = getSocket && getSocket();
+        if (s && (s as any).connected) return; // socket active, no poll
+      } catch { /* ignore */ }
+      pollRef.current = window.setInterval(fetchUnread, 30000) as unknown as number;
+    };
+
+    const stopPoll = () => {
+      if (pollRef.current == null) return;
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
+
+    const onConnect = () => stopPoll();
+    const onDisconnect = () => startPoll();
+
+    try { socketOn && socketOn('connect', onConnect); } catch { /* ignore */ }
+    try { socketOn && socketOn('disconnect', onDisconnect); } catch { /* ignore */ }
+
+    // start polling if socket not connected
+    try { const s = getSocket && getSocket(); if (!s || !(s as any).connected) startPoll(); } catch { startPoll(); }
+
+    return () => {
+      mounted = false;
+      stopPoll();
+      try { socketOff && socketOff('connect', onConnect); } catch { /* ignore */ }
+      try { socketOff && socketOff('disconnect', onDisconnect); } catch { /* ignore */ }
+    };
+  }, []);
+
   // Listen for socket broadcasts to update conversation previews and removals
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -139,7 +214,7 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
             const item = { ...updated[idx] };
             item.lastMessage = preview;
             item.lastTime = time;
-            item.unread = (Number(item.unread || 0) + 1);
+            // do not change unread here — unread counts are managed via dedicated unread endpoint and socket handlers
             // move to top
             updated.splice(idx, 1);
             return [item, ...updated];
@@ -178,10 +253,66 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
     };
     window.addEventListener('storage', onStorage);
 
+    // Socket listeners to keep unread counts in sync
+    const handleSocketReceive = (payload: unknown) => {
+      try {
+        const p = payload as any;
+        const chatId = p?.chatId ?? p?.conversationId ?? p?.conversation_id;
+        if (!chatId) return;
+        const sender = p?.senderId ?? p?.sender ?? p?.from ?? null;
+        // ignore messages originating from current user (including optimistic messages with tempId)
+        if (String(sender) === String(uid)) return;
+        if (p?.tempId && String(sender) === String(uid)) return;
+
+        setConvs((prev) => {
+          const updated = [...prev];
+          const idx = updated.findIndex((x) => String(x.id) === String(chatId));
+          const preview = p?.message ?? p?.content ?? p?.text ?? p?.preview ?? p?.lastMessage ?? '';
+          const time = p?.time ?? p?.createdAt ?? p?.timestamp ?? p?.sentAt ?? Date.now();
+          if (idx !== -1) {
+            const item = { ...updated[idx] };
+            item.unread = (Number(item.unread || 0) + 1);
+            item.lastMessage = preview;
+            item.lastTime = time;
+            updated.splice(idx, 1);
+            return [item, ...updated];
+          }
+          const newConv: Conv = {
+            id: chatId,
+            otherUser: p?.otherUser ?? null,
+            product: p?.product ?? null,
+            lastMessage: preview,
+            lastTime: time,
+            unread: 1,
+          };
+          return [newConv, ...updated];
+        });
+      } catch (e) { console.warn('handleSocketReceive error', e); }
+    };
+
+    const handleMarkedRead = (payload: unknown) => {
+      try {
+        const p = payload as any;
+        const chatId = p?.chatId ?? p?.conversationId ?? p?.conversation_id;
+        if (!chatId) return;
+        const modifiedCount = (typeof p?.modifiedCount === 'number') ? p.modifiedCount : (Array.isArray(p?.messageIds) ? p.messageIds.length : undefined);
+        setConvs((prev) => prev.map((c) => {
+          if (String(c.id) !== String(chatId)) return c;
+          if (modifiedCount != null) return { ...c, unread: Math.max(0, Number(c.unread || 0) - modifiedCount) };
+          return { ...c, unread: 0 };
+        }));
+      } catch (e) { console.warn('handleMarkedRead error', e); }
+    };
+
+    try { socketOn && socketOn('receive_message', handleSocketReceive); } catch { /* ignore */ }
+    try { socketOn && socketOn('messages_marked_read', handleMarkedRead); } catch { /* ignore */ }
+
     return () => {
       try { bc?.removeEventListener('message', handler); } catch { /* ignore */ }
       try { bc?.close(); } catch { /* ignore */ }
       window.removeEventListener('storage', onStorage);
+      try { socketOff && socketOff('receive_message', handleSocketReceive); } catch { /* ignore */ }
+      try { socketOff && socketOff('messages_marked_read', handleMarkedRead); } catch { /* ignore */ }
     };
   }, []);
 
@@ -295,7 +426,7 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
                       )}
                     </Avatar>
                     {(conv.unread || 0) > 0 ? (
-                      <div className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
+                      <div aria-hidden="true" className="absolute top-0 right-0 w-3 h-3 bg-destructive rounded-full border-2 border-white" />
                     ) : null}
                   </div>
 
@@ -307,7 +438,7 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground truncate">{conv.product?.title || conv.lastMessage}</p>
                       {(conv.unread || 0) > 0 ? (
-                        <Badge className="ml-2 bg-accent">{conv.unread}</Badge>
+                        <Badge className="ml-2 bg-destructive text-white" aria-label={`Unread messages for ${conv.otherUser?.name || 'conversation'}: ${conv.unread}`}>{conv.unread}</Badge>
                       ) : null}
                     </div>
                   </div>

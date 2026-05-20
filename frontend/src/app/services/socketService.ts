@@ -22,25 +22,9 @@ function safePost(obj: unknown) {
 }
 
 function playBeep() {
-  try {
-    const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = 880;
-    g.gain.value = 0.02;
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    setTimeout(() => {
-      o.stop();
-      try { ctx.close(); } catch { /* ignore */ }
-    }, 120);
-  } catch {
-    /* ignore audio errors */
-  }
+  // Sound playback disabled: message reception should not produce audio.
+  // Kept for backwards compatibility if sound is re-enabled later.
+  return;
 }
 
 export function initSocket(jwt: string, url = (import.meta.env.VITE_WS_URL ?? 'http://localhost:3000')): Socket | null {
