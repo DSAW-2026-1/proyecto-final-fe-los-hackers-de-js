@@ -179,17 +179,17 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
     const onConnect = () => stopPoll();
     const onDisconnect = () => startPoll();
 
-    try { socketOn && socketOn('connect', onConnect); } catch { /* ignore */ }
-    try { socketOn && socketOn('disconnect', onDisconnect); } catch { /* ignore */ }
+    try { if (socketOn) { socketOn('connect', onConnect); } } catch { /* ignore */ }
+    try { if (socketOn) { socketOn('disconnect', onDisconnect); } } catch { /* ignore */ }
 
     // start polling if socket not connected
-    try { const s = getSocket && getSocket(); if (!s || !(s as any).connected) startPoll(); } catch { startPoll(); }
+    try { const s = getSocket ? getSocket() : null; if (!s || !(s as any).connected) startPoll(); } catch { startPoll(); }
 
     return () => {
       mounted = false;
       stopPoll();
-      try { socketOff && socketOff('connect', onConnect); } catch { /* ignore */ }
-      try { socketOff && socketOff('disconnect', onDisconnect); } catch { /* ignore */ }
+      try { if (socketOff) { socketOff('connect', onConnect); } } catch { /* ignore */ }
+      try { if (socketOff) { socketOff('disconnect', onDisconnect); } } catch { /* ignore */ }
     };
   }, []);
 
@@ -304,17 +304,17 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
       } catch (e) { console.warn('handleMarkedRead error', e); }
     };
 
-    try { socketOn && socketOn('receive_message', handleSocketReceive); } catch { /* ignore */ }
-    try { socketOn && socketOn('messages_marked_read', handleMarkedRead); } catch { /* ignore */ }
+    try { if (socketOn) { socketOn('receive_message', handleSocketReceive); } } catch { /* ignore */ }
+    try { if (socketOn) { socketOn('messages_marked_read', handleMarkedRead); } } catch { /* ignore */ }
 
     return () => {
       try { bc?.removeEventListener('message', handler); } catch { /* ignore */ }
       try { bc?.close(); } catch { /* ignore */ }
       window.removeEventListener('storage', onStorage);
-      try { socketOff && socketOff('receive_message', handleSocketReceive); } catch { /* ignore */ }
-      try { socketOff && socketOff('messages_marked_read', handleMarkedRead); } catch { /* ignore */ }
+      try { if (socketOff) { socketOff('receive_message', handleSocketReceive); } } catch { /* ignore */ }
+      try { if (socketOff) { socketOff('messages_marked_read', handleMarkedRead); } } catch { /* ignore */ }
     };
-  }, []);
+  }, [uid]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

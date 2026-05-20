@@ -3,7 +3,6 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Avatar } from './ui/avatar';
-import { ScrollArea } from './ui/scroll-area';
 import { Send, Paperclip, MoreVertical, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -50,17 +49,20 @@ interface APIMessage {
 export function ChatInterface() {
   const [input, setInput] = useState('');
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
+  const { uid } = useAuth();
+  const location = useLocation();
   const { messages, send, setMessages } = useConversationSocket(selectedConv?.id ?? selectedConv?._id ?? null);
 
   // Load history when a conversation is selected
-  const { uid } = useAuth();
-  const location = useLocation();
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll when messages update
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
   }, [messages]);
 
@@ -249,7 +251,7 @@ export function ChatInterface() {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 min-h-0 p-4">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4" ref={scrollContainerRef}>
                 <div className="space-y-4">
                   {messages.map((msg) => (
                     <div
@@ -272,9 +274,8 @@ export function ChatInterface() {
                       </div>
                     </div>
                   ))}
-                  <div ref={bottomRef} />
                 </div>
-              </ScrollArea>
+              </div>
 
               <div className="p-4 border-t">
                 <div className="flex items-center gap-2">
