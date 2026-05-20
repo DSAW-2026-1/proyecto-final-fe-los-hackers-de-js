@@ -326,7 +326,7 @@ export default function ConversationsList({ onSelect }: ConversationsListProps) 
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <p className="text-sm text-muted-foreground">Are you sure you want to remove this conversation from your list? This action hides it for you and can be reversed.</p>
+            <p className="text-sm text-muted-foreground">¿Estás seguro que quieres eliminar este chat? Esta acción solo eliminará el chat para ti.</p>
           </div>
 
           <DialogFooter>
