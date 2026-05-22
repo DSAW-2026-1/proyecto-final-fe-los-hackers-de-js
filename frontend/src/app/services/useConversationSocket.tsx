@@ -90,6 +90,7 @@ export default function useConversationSocket(chatId: any) {
     };
 
     const startPolling = () => {
+      if (!chatId || String(chatId) === 'null') return;
       if (pollTimerRef.current != null) return; // already polling
       console.info(`[chat:${chatId}] WebSocket unavailable — starting polling fallback`);
       // initialize lastChecked to now so we only get new messages
