@@ -1,132 +1,125 @@
+/** @jsxImportSource react */
 import React, { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 import { Send, Circle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import {FULL_URL} from "./../services/api.ts";
 
-type Message = {
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
+const PORT = import.meta.env.VITE_API_PORT || null;
+
+const BACKEND_URL = (PORT)? `${BASE_URL}:${PORT}` : `${BASE_URL}`;
+const socket: Socket = io(BACKEND_URL);
+
+interface Message {
   chatId: string;
   senderId: string;
   text: string;
   timestamp: string;
-};
-
-// Conexión fuera del componente para evitar duplicados
-// TODO: Move API communication logic to existing api.ts, where all API calls and stuff should be
-const socket = io(FULL_URL);
+}
 
 export function ChatRealTime({ currentUser }: { currentUser: { id: string } | null }) {
-  const { chatId } = useParams();
+  const { chatId } = useParams<{ chatId: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isConnected, setIsConnected] = useState(socket.connected);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Manejo de Conexión y Eventos
   useEffect(() => {
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+    const onMessage = (data: Message) => setMessages((prev) => [...prev, data]);
 
-    // Unirse a la sala específica de este chat
-    socket.emit('join_chat', chatId);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('receive_message', onMessage);
 
-    // Escuchar mensajes nuevos
-    socket.on('receive_message', (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    // Cargar historial previo (Persistencia)
-    fetch(`http://localhost:3001/api/messages/${chatId}`)
-      .then(res => res.json())
-      .then(data => setMessages(data));
+    if (chatId) {
+      socket.emit('join_chat', chatId);
+      fetch(`${BACKEND_URL}/api/messages/${chatId}`)
+        .then(res => res.json())
+        .then((data: Message[]) => setMessages(Array.isArray(data) ? data : []))
+        .catch(err => console.error("Error cargando historial:", err));
+    }
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('receive_message');
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('receive_message', onMessage);
     };
   }, [chatId]);
 
-  // 2. Auto-Scroll: Siempre bajar al último mensaje
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!newMessage.trim() || !currentUser?.id) return;
+  const handleSend = async () => {
+    if (!newMessage.trim() || !currentUser || !chatId) return;
 
-    const messageData = {
-      chatId,
-      senderId: currentUser.id,
-      text: newMessage,
-      timestamp: new Date().toISOString()
+    const msgData: Message = { 
+      chatId, 
+      senderId: currentUser.id, 
+      text: newMessage, 
+      timestamp: new Date().toISOString() 
     };
 
-    // Emitir por socket (Tiempo real)
-    socket.emit('send_message', messageData);
+    socket.emit('send_message', msgData);
     
-    // Guardar en DB (Persistencia) a través del backend
-    fetch('http://localhost:3001/api/messages', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'user-id': currentUser.id 
-      },
-      body: JSON.stringify(messageData)
-    });
+    try {
+      await fetch(`${BACKEND_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'user-id': currentUser.id },
+        body: JSON.stringify(msgData)
+      });
+    } catch (error) {
+      console.error("Error al guardar:", error);
+    }
 
     setNewMessage('');
   };
 
   return (
-    <div className="flex flex-col h-[600px] border rounded-lg bg-white shadow-lg">
-      {/* Indicador de Estado */}
-      <div className="p-3 border-b flex items-center justify-between bg-muted/50">
-        <span className="font-bold">Chat de Entrega</span>
+    <div className="flex flex-col h-[600px] border rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="p-3 border-b flex items-center justify-between bg-[#003366] text-white">
+        <span className="font-bold">Chat de Entrega Unisabana</span>
         <div className="flex items-center gap-2">
-          <Circle className={`w-3 h-3 fill-current ${isConnected ? 'text-green-500' : 'text-red-500 animate-pulse'}`} />
-          <span className="text-xs">{isConnected ? 'Conectado' : 'Reconectando...'}</span>
+          <Circle className={`w-2 h-2 fill-current ${isConnected ? 'text-green-400' : 'text-red-400 animate-pulse'}`} />
+          <span className="text-[10px] font-bold uppercase">{isConnected ? 'Conectado' : 'Desconectado'}</span>
         </div>
       </div>
 
-      {/* Cuerpo del Chat (Scroll Area) */}
       <ScrollArea className="flex-1 p-4 bg-gray-50">
         <div className="space-y-4">
-          {messages.map((msg, index) => (
-            <div key={index} className={`flex ${msg.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
-                msg.senderId === currentUser?.id 
-                ? 'bg-[#003366] text-white rounded-br-none' // Azul institucional
-                : 'bg-gray-200 text-gray-800 rounded-bl-none' // Gris claro
-              }`}>
-                <p className="text-sm">{msg.text}</p>
-                <span className="text-[10px] opacity-70 block text-right mt-1">
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+          {messages.map((msg, index) => {
+            const isMe = msg.senderId === currentUser?.id;
+            return (
+              <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-4 py-2 rounded-2xl ${
+                  isMe ? 'bg-[#003366] text-white rounded-br-none' : 'bg-white border text-gray-800 rounded-bl-none'
+                }`}>
+                  <p className="text-sm">{msg.text}</p>
+                </div>
               </div>
-            </div>
-          ))}
-          <div ref={scrollRef} /> 
+            );
+          })}
+          <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
-      {/* Input de Mensaje */}
-      <div className="p-4 border-t flex gap-2 bg-white">
+      <div className="p-4 border-t flex gap-2">
         <Input 
-          placeholder="Escribe un mensaje para coordinar..." 
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Escribe un mensaje..." 
         />
-        <Button onClick={handleSend} className="bg-[#003366] hover:bg-[#002244]">
+        <Button onClick={handleSend} className="bg-[#003366]">
           <Send className="w-4 h-4" />
         </Button>
       </div>
     </div>
   );
 }
+
