@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { initSocket, sendMessage as sendMessageViaSocket } from './socketService';
+import { initSocket, sendMessage as sendMessageViaSocket, getSocket } from './socketService';
 import { apiRequest } from './api';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -164,11 +164,41 @@ export default function useConversationSocket(chatId: any) {
     };
   }, [chatId, jwt]);
 
-  function send(message: string) {
+  async function send(message: string) {
     const tempId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     const optimistic: Msg = { tempId, message, isOwn: true, status: 'sending' };
     setMessages((prev) => [...prev, optimistic]);
-    sendMessageViaSocket(chatId, message, tempId);
+    const socket = getSocket();
+    if (socket && (socket as any).connected) {
+      sendMessageViaSocket(chatId, message, tempId);
+      return;
+    }
+
+    try {
+      const res = await apiRequest(`/api/chat/${chatId}/messages/polling`, {
+        method: 'POST',
+        body: JSON.stringify({ content: message, tempId }),
+      });
+      const payload = (res as any)?.message ?? res;
+      const incoming = {
+        id: payload?.id ?? payload?._id ?? payload?.messageId,
+        tempId,
+        message: payload?.content ?? payload?.message ?? payload?.text ?? message,
+        sender: payload?.senderId ?? payload?.sender ?? payload?.from ?? null,
+        time: payload?.createdAt ?? payload?.time ?? payload?.timestamp ?? null,
+      } as any;
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.tempId === tempId);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], ...incoming, status: 'sent' };
+          return updated;
+        }
+        return [...prev, { ...incoming, status: 'sent' }];
+      });
+    } catch (e) {
+      console.warn('Polling send failed', e);
+    }
   }
 
   return { messages, send, setMessages };
