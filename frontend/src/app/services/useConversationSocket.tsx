@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { initSocket, sendMessage as sendMessageViaSocket, getSocket } from './socketService';
 import { apiRequest } from './api';
+import { useAuth } from '../context/AuthContext';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 type Msg = {
@@ -15,6 +16,7 @@ type Msg = {
 
 export default function useConversationSocket(chatId: any) {
   const [messages, setMessages] = useState<Msg[]>([]);
+  const { uid } = useAuth();
   const jwt = typeof window !== 'undefined' ? (localStorage.getItem('token') || '') : '';
   const pollTimerRef = useRef<number | null>(null);
   const lastCheckedRef = useRef<string | null>(null);
@@ -58,6 +60,7 @@ export default function useConversationSocket(chatId: any) {
         sender: p.senderId ?? p.sender ?? p.from ?? null,
         time: p.createdAt ?? p.time ?? p.timestamp ?? null,
         chatId: payloadConvId,
+        isOwn: p.isOwn ?? (p.senderId ?? p.sender ?? p.from ? String(p.senderId ?? p.sender ?? p.from) === String(uid) : false)
       } as any;
 
       // update lastChecked to newest timestamp
@@ -68,6 +71,14 @@ export default function useConversationSocket(chatId: any) {
       setMessages((prev) => {
         if (incoming.tempId) {
           const idx = prev.findIndex((m) => m.tempId === incoming.tempId);
+          if (idx !== -1) {
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], ...incoming, status: 'sent' };
+            return updated;
+          }
+        }
+        if (incoming.id) {
+          const idx = prev.findIndex((m) => String(m.id) === String(incoming.id));
           if (idx !== -1) {
             const updated = [...prev];
             updated[idx] = { ...updated[idx], ...incoming, status: 'sent' };
@@ -162,7 +173,7 @@ export default function useConversationSocket(chatId: any) {
         delete (window as any).__useConversationSocketCleanup;
       } catch { /* ignore */ }
     };
-  }, [chatId, jwt]);
+  }, [chatId, jwt, uid]);
 
   async function send(message: string) {
     const tempId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
