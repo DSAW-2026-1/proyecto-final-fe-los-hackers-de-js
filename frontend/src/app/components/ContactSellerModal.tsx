@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { apiRequest } from '../services/api';
 
 // Definimos qué datos necesita el componente para funcionar
 interface ContactSellerModalProps {
@@ -20,41 +21,41 @@ export function ContactSellerModal({ product, sellerId, currentUser, isOpen, onC
 
   const handleStartChat = async () => {
     if (!currentUser) return;
-    
+
+    if (String(currentUser.id) === String(sellerId)) {
+      alert('No puedes iniciar una conversación contigo mismo.');
+      onClose();
+      return;
+    }
+
     setLoading(true); // Feedback: "Iniciando conversación..."
-    
+
     try {
-      // 1. Llamada al endpoint para crear o recuperar el chat
-      const chatRes = await fetch('http://localhost:3001/api/chats', {
+      // 1. Use unified API to create or return a chat for this product
+      const data = await apiRequest('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sellerId: sellerId,
-          buyerId: currentUser.id,
-          productId: product.id
-        }),
+        body: JSON.stringify({ productID: product.id })
       });
 
-      if (!chatRes.ok) throw new Error('Error al crear el chat');
-      const chatData = await chatRes.json();
+      const convId = data?.id ?? data?.chatId ?? data?.chat_id ?? data?.chat?.id ?? data?.conversationId ?? data?.conversation_id ?? data?.conversation?.id ?? data?._id;
+      if (!convId) throw new Error('No se obtuvo el id de la conversación');
 
-      // 2. Enviar el mensaje inicial que escribió el usuario
-      await fetch('http://localhost:3001/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: chatData._id,
-          senderId: currentUser.id,
-          text: message
-        }),
-      });
+      // 2. Send initial message to new chat (best-effort: don't block navigation)
+      try {
+        await apiRequest(`/api/chat/${convId}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({ content: message })
+        });
+      } catch (msgErr) {
+        console.warn('Conversación creada pero no se pudo enviar el mensaje inicial', msgErr);
+      }
 
-      // 3. Redirigir a la vista de mensajes con el ID del chat
-      navigate(`/mensajes/${chatData._id}`);
-      onClose(); // Cerrar el modal
+      // 3. Redirect to standard chat interface with conversation opened
+      navigate(`/chat?open=${convId}`);
+      onClose(); // Close modal
     } catch (error) {
-      console.error("Hubo un problema:", error);
-      alert("No se pudo iniciar el chat. Intenta de nuevo.");
+      console.error('Hubo un problema:', error);
+      alert('No se pudo iniciar el chat. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }

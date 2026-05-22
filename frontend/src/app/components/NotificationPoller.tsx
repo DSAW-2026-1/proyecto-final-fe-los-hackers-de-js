@@ -58,7 +58,7 @@ export function NotificationPoller() {
             const Icon = styles.icon;
 
             toast(
-              <div className="flex flex-col gap-2 w-full">
+              <div className="flex flex-col gap-2 w-full min-w-[280px] sm:min-w-[320px]">
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-full ${styles.bgColor} ${styles.color} shrink-0`}>
                     <Icon className="w-4 h-4" />
@@ -90,6 +90,7 @@ export function NotificationPoller() {
                 duration: 5000,
                 position: 'bottom-right',
                 icon: null, // We handle icons in the custom content
+                className: 'w-full',
               }
             );
           });

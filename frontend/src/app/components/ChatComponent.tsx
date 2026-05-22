@@ -1,28 +1,28 @@
+// TODO: File possibly unused, delete if unused
 import React, { useState } from 'react';
-import { Send, User, Search, Circle, MoreVertical, Phone, MessageSquare } from 'lucide-react';
+import { Send, Search, MoreVertical, Phone, MessageSquare } from 'lucide-react';
 
-//TODO: Este archivo está duplicado. Integrar funcionalidad a ChatInterface.tsx, que tiene una mejor interfaz
 
-// --- COMPONENTES DE UI INTEGRADOS (Para evitar errores de ruta) ---
-const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}>{children}</div>
-);
 
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input {...props} className={`flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50 ${props.className}`} />
 );
 
-const Button = ({ children, variant = "primary", size = "md", ...props }: any) => {
-  const variants: any = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-    ghost: "hover:bg-slate-100 text-slate-500",
-  };
-  const sizes: any = {
-    md: "h-10 px-4 py-2",
-    icon: "h-10 w-10 flex items-center justify-center",
-  };
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'ghost';
+  size?: 'md' | 'icon';
+}
+const Button = ({ children, variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) => {
+  const variants = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    ghost: 'hover:bg-slate-100 text-slate-500',
+  } as const;
+  const sizes = {
+    md: 'h-10 px-4 py-2',
+    icon: 'h-10 w-10 flex items-center justify-center',
+  } as const;
   return (
-    <button {...props} className={`inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${props.className}`}>
+    <button {...props} className={`inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}>
       {children}
     </button>
   );

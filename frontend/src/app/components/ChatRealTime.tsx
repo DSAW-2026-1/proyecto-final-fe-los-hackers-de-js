@@ -1,4 +1,4 @@
-/** @jsxImportSource react */
+// TODO: File possibly unused, delete if unused
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useParams } from 'react-router-dom';

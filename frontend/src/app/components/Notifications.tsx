@@ -14,7 +14,7 @@ import {
   LucideIcon,
   Loader2
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { userService, NotificationItem as APINotification } from '../services/userService';
 import { useNotifications } from '../context/NotificationContext';
@@ -64,7 +64,7 @@ export function Notifications() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchNotifications = async (pageNum: number, isLoadMore: boolean = false) => {
+  const fetchNotifications = useCallback(async (pageNum: number, isLoadMore: boolean = false) => {
     try {
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
@@ -97,11 +97,11 @@ export function Notifications() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [refreshUnreadCount]);
 
   useEffect(() => {
     fetchNotifications(1);
-  }, [refreshUnreadCount]);
+  }, [fetchNotifications, refreshUnreadCount]);
 
   const loadMore = () => {
     if (page < totalPages) {
