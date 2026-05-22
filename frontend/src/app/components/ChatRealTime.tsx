@@ -6,7 +6,7 @@ import { Send, Circle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import {FULL_URL} from "./../services/api.ts";
+import { FULL_URL } from './../services/api.ts';
 
 type Message = {
   chatId: string;
@@ -16,7 +16,8 @@ type Message = {
 };
 
 // Conexión fuera del componente para evitar duplicados
-const socket = io(FULL_URL);
+const socketUrl = import.meta.env.VITE_WS_URL ?? FULL_URL;
+const socket = io(socketUrl);
 
 export function ChatRealTime({ currentUser }: { currentUser: { id: string } | null }) {
   const { chatId } = useParams();
@@ -39,7 +40,7 @@ export function ChatRealTime({ currentUser }: { currentUser: { id: string } | nu
     });
 
     // Cargar historial previo (Persistencia)
-    fetch(`http://localhost:3001/api/messages/${chatId}`)
+    fetch(`${FULL_URL}/api/messages/${chatId}`)
       .then(res => res.json())
       .then(data => setMessages(data));
 
@@ -71,7 +72,7 @@ export function ChatRealTime({ currentUser }: { currentUser: { id: string } | nu
     socket.emit('send_message', messageData);
     
     // Guardar en DB (Persistencia) a través del backend
-    fetch('http://localhost:3001/api/messages', {
+    fetch(`${FULL_URL}/api/messages`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

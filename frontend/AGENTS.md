@@ -1,3 +1,5 @@
+NOTE: Pretty sure this file is stale.
+
 # Unisabana Marketplace - Implementation Roadmap
 
 **Date:** 2026-05-12
@@ -73,3 +75,8 @@ Cleanup suggestions
 
 Contact
 - Changes applied during Copilot session on 2026-05-20.
+
+IMPORTANT: Subagent / Automated Test URL Policy
+
+- Subagents and automated test agents MUST NOT target deployed production or public URLs. Use local development endpoints (http://localhost:3000, http://localhost:5173) or an explicitly provided staging/test URL.
+- Any agent contacting a non-local endpoint must have explicit human approval and the exact URL provided in the instructions. This prevents accidental interference with live systems and data leakage.
