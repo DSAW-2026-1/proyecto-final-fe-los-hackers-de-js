@@ -118,24 +118,29 @@ export default function useConversationSocket(chatId: any) {
     }
 
     if (socket) {
-      const handleConnect = () => {
-        stopPolling();
-      };
-      const handleDisconnect = () => {
-        startPolling();
-      };
+       const handleConnect = () => {
+         stopPolling();
+       };
+       const handleDisconnect = () => {
+         startPolling();
+       };
+       const handleConnectError = () => {
+         startPolling();
+       };
 
-      socket.on('receive_message', handleReceive);
-      socket.on('connect', handleConnect);
-      socket.on('disconnect', handleDisconnect);
+       socket.on('receive_message', handleReceive);
+       socket.on('connect', handleConnect);
+       socket.on('disconnect', handleDisconnect);
+       socket.on('connect_error', handleConnectError);
 
       // ensure cleanup removes listeners
       return () => {
         mounted = false;
         try {
-          socket.off('receive_message', handleReceive);
-          socket.off('connect', handleConnect);
-          socket.off('disconnect', handleDisconnect);
+           socket.off('receive_message', handleReceive);
+           socket.off('connect', handleConnect);
+           socket.off('disconnect', handleDisconnect);
+           socket.off('connect_error', handleConnectError);
         } catch { /* ignore */ }
         stopPolling();
         // cleanup active conversation broadcast
