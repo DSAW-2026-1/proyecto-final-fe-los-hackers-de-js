@@ -1,14 +1,14 @@
-TRD ï¿½ Marketplace Universidad de La Sabana 
-1. Descripciï¿½n General 
+TRD — Marketplace Universidad de La Sabana 
+1. Descripción General 
 El sistema consiste en un marketplace web institucional para la Universidad de La Sabana, donde estudiantes pueden publicar, comprar y gestionar productos dentro de la comunidad universitaria. 
-El sistema debe ofrecer una experiencia completa de compra tipo e-commerce, adaptada a un entorno acadï¿½mico, con ï¿½nfasis en usabilidad, confianza y comunicaciï¿½n directa entre usuarios. 
+El sistema debe ofrecer una experiencia completa de compra tipo e-commerce, adaptada a un entorno académico, con énfasis en usabilidad, confianza y comunicación directa entre usuarios. 
  
 2. Objetivos del Sistema 
 ..Facilitar la compra/venta entre estudiantes. 
 ..Centralizar publicaciones dentro del entorno universitario. 
-..Garantizar confianza mediante reseï¿½as y perfiles. 
-..Permitir moderaciï¿½n institucional (administrador). 
-..Ofrecer comunicaciï¿½n directa (chat + notificaciones). 
+..Garantizar confianza mediante reseñas y perfiles. 
+..Permitir moderación institucional (administrador). 
+..Ofrecer comunicación directa (chat + notificaciones). 
 
  
 3. Roles del Sistema 
@@ -16,45 +16,45 @@ El sistema debe ofrecer una experiencia completa de compra tipo e-commerce, adap
 ..Navega productos. 
 ..Compra productos. 
 ..Contacta vendedores. 
-..Deja reseï¿½as. 
+..Deja reseñas. 
 ..Recibe notificaciones. 
 
 3.2 Vendedor (extiende Comprador) 
-Decisiï¿½n clave: Todo vendedor es tambiï¿½n comprador (modelo de herencia o composiciï¿½n de roles) 
+Decisión clave: Todo vendedor es también comprador (modelo de herencia o composición de roles) 
 ..Publica productos. 
 ..Gestiona inventario. 
 ..Responde mensajes. 
-..Recibe reseï¿½as. 
+..Recibe reseñas. 
 
 3.3 Administrador 
 ..Modera publicaciones. 
 ..Gestiona usuarios. 
 ..Puede eliminar contenido. 
 ..Supervisa reportes. 
-..Accede a mï¿½tricas bï¿½sicas. 
+..Accede a métricas básicas. 
 
  
 4. Alcance Funcional 
-4.1 Gestiï¿½n de Usuarios 
+4.1 Gestión de Usuarios 
 ..Registro (correo institucional). 
 ..Login / Logout. 
 ..Perfil de usuario:. 
 ..Nombre. 
 ..Carrera (opcional). 
 ..Foto. 
-..Reputaciï¿½n. 
+..Reputación. 
 
 
-..Conversiï¿½n automï¿½tica a vendedor (flag o rol). 
+..Conversión automática a vendedor (flag o rol). 
 
  
-4.2 Gestiï¿½n de Productos 
+4.2 Gestión de Productos 
 ..Crear producto:. 
-..Tï¿½tulo. 
-..Descripciï¿½n. 
+..Título. 
+..Descripción. 
 ..Precio. 
-..Categorï¿½a. 
-..Imï¿½genes. 
+..Categoría. 
+..Imágenes. 
 ..Estado (nuevo/usado). 
 
 
@@ -62,11 +62,11 @@ Decisiï¿½n clave: Todo vendedor es tambiï¿½n comprador (modelo de herencia o com
 ..Listado de productos. 
 ..Filtros:. 
 ..Precio. 
-..Categorï¿½a. 
+..Categoría. 
 ..Estado. 
 
 
-..Bï¿½squeda por texto. 
+..Búsqueda por texto. 
 
  
 4.3 Flujo de Compra 
@@ -84,21 +84,21 @@ Nota: Se recomienda simular pago (no integrar pasarela real).
 
  
 4.4 Sistema de Chat 
-..Comunicaciï¿½n directa comprador . vendedor. 
+..Comunicación directa comprador . vendedor. 
 ..Basado en producto. 
 ..Mensajes en tiempo real (ideal) o polling. 
 ..Historial de conversaciones. 
 
  
-4.5 Sistema de Reseï¿½as 
+4.5 Sistema de Reseñas 
 ..Comprador califica vendedor:. 
-..Rating (1ï¿½5). 
+..Rating (1–5). 
 ..Comentario. 
 
 
 ..Promedio visible en perfil. 
-..Restricciï¿½n:. 
-..Solo usuarios que compraron pueden reseï¿½ar. 
+..Restricción:. 
+..Solo usuarios que compraron pueden reseñar. 
 
 
 
@@ -108,7 +108,7 @@ Eventos clave:
 ..Nuevo mensaje. 
 ..Compra realizada. 
 ..Cambio de estado de orden. 
-..Nueva reseï¿½a. 
+..Nueva reseña. 
 
 Tipos: 
 ..In-app (obligatorio). 
@@ -121,12 +121,12 @@ Tipos:
 ..Productos activos. 
 
 
-..Moderaciï¿½n:. 
+..Moderación:. 
 ..Eliminar productos. 
 ..Suspender usuarios. 
 
 
-..Gestiï¿½n de reportes:. 
+..Gestión de reportes:. 
 ..Usuarios pueden reportar productos o perfiles. 
 
 
@@ -147,11 +147,11 @@ Entidades principales:
 
  
 Relaciones clave: 
-..User 1ï¿½N Products. 
-..User 1ï¿½N Orders. 
-..Product 1ï¿½N Reviews. 
-..Conversation 1ï¿½N Messages. 
-..User 1ï¿½N Notifications. 
+..User 1—N Products. 
+..User 1—N Orders. 
+..Product 1—N Reviews. 
+..Conversation 1—N Messages. 
+..User 1—N Notifications. 
 
  
 6. Requisitos No Funcionales 
@@ -160,16 +160,16 @@ Relaciones clave:
 ..Responsive (mobile-first). 
 
 6.2 Performance 
-..Carga de pï¿½gina < 2s. 
-..Paginaciï¿½n en listados. 
+..Carga de página < 2s. 
+..Paginación en listados. 
 
 6.3 Seguridad 
-..Autenticaciï¿½n JWT o sesiï¿½n. 
-..Validaciï¿½n de inputs. 
-..Protecciï¿½n bï¿½sica contra XSS. 
+..Autenticación JWT o sesión. 
+..Validación de inputs. 
+..Protección básica contra XSS. 
 
 6.4 Escalabilidad 
-..Separaciï¿½n frontend/backend. 
+..Separación frontend/backend. 
 ..API REST. 
 
  
@@ -190,7 +190,7 @@ Tiempo Real
 ..WebSockets (Socket.io) para chat y notificaciones. 
 
  
-8. Branding ï¿½ Universidad de La Sabana 
+8. Branding — Universidad de La Sabana 
 Lineamientos: 
 ..Colores institucionales:. 
 ..Azul oscuro. 
@@ -198,8 +198,8 @@ Lineamientos:
 ..Dorado (acentos). 
 
 
-..Tipografï¿½a limpia y acadï¿½mica. 
-..Uso del logo institucional (segï¿½n manual de marca). 
+..Tipografía limpia y académica. 
+..Uso del logo institucional (según manual de marca). 
 
 UX Tone: 
 ..Profesional pero cercano. 
@@ -209,17 +209,17 @@ UX Tone:
 9. Casos de Uso Clave 
 1..Usuario se registra . compra producto. 
 2..Usuario publica producto . recibe mensaje. 
-3..Compra completada . usuario deja reseï¿½a. 
+3..Compra completada . usuario deja reseña. 
 4..Admin elimina producto reportado. 
 
  
 10. MVP (Entrega sugerida) 
 Obligatorio: 
 ..CRUD de productos. 
-..Autenticaciï¿½n. 
+..Autenticación. 
 ..Roles. 
-..Chat bï¿½sico. 
-..Reseï¿½as. 
+..Chat básico. 
+..Reseñas. 
 ..Notificaciones in-app simples. 
 
 Opcional (bonus): 

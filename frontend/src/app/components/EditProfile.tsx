@@ -11,12 +11,9 @@ import { Badge } from './ui/badge';
 import { 
   User, 
   Mail, 
-  Phone, 
-  MapPin, 
   Camera, 
   Lock, 
   Bell, 
-  ShieldCheck, 
   ArrowLeft,
   Save,
   Building,
@@ -50,6 +47,49 @@ export function EditProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeSection, setActiveSection] = useState("public-info");
+
+  // Scroll smoothly to a target section by ID
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setActiveSection(id);
+    }
+  };
+
+  // Dynamically highlight active section based on proximity to viewport top
+  useEffect(() => {
+    const sections = ['public-info', 'security-section', 'seller-section', 'notification-settings'];
+    const observers = sections.map(id => {
+      const element = document.getElementById(id);
+      if (!element) return null;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              setActiveSection(id);
+            }
+          });
+        },
+        { 
+          rootMargin: '-10% 0px -70% 0px',
+          threshold: 0
+        }
+      );
+      observer.observe(element);
+      return { observer, element };
+    });
+
+    return () => {
+      observers.forEach(obs => {
+        if (obs) {
+          obs.observer.unobserve(obs.element);
+        }
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -260,29 +300,45 @@ export function EditProfile() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          <aside className="lg:col-span-1">
+          <aside className="lg:col-span-1 lg:sticky lg:top-24 h-fit">
             <div className="space-y-1">
-              <Button variant="secondary" className="w-full justify-start font-semibold">
+              <Button 
+                variant={activeSection === 'public-info' ? 'secondary' : 'ghost'} 
+                className={`w-full justify-start ${activeSection === 'public-info' ? 'font-semibold' : 'text-muted-foreground'}`}
+                onClick={() => scrollToSection('public-info')}
+              >
                 <User className="w-4 h-4 mr-3" />
                 Información Pública
               </Button>
-              <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+              <Button 
+                variant={activeSection === 'security-section' ? 'secondary' : 'ghost'} 
+                className={`w-full justify-start ${activeSection === 'security-section' ? 'font-semibold' : 'text-muted-foreground'}`}
+                onClick={() => scrollToSection('security-section')}
+              >
                 <Lock className="w-4 h-4 mr-3" />
                 Seguridad
               </Button>
-              <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+              <Button 
+                variant={activeSection === 'seller-section' ? 'secondary' : 'ghost'} 
+                className={`w-full justify-start ${activeSection === 'seller-section' ? 'font-semibold' : 'text-muted-foreground'}`}
+                onClick={() => scrollToSection('seller-section')}
+              >
+                <Store className="w-4 h-4 mr-3" />
+                Cuenta de Vendedor
+              </Button>
+              <Button 
+                variant={activeSection === 'notification-settings' ? 'secondary' : 'ghost'} 
+                className={`w-full justify-start ${activeSection === 'notification-settings' ? 'font-semibold' : 'text-muted-foreground'}`}
+                onClick={() => scrollToSection('notification-settings')}
+              >
                 <Bell className="w-4 h-4 mr-3" />
                 Notificaciones
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-muted-foreground">
-                <ShieldCheck className="w-4 h-4 mr-3" />
-                Privacidad
               </Button>
             </div>
           </aside>
 
           <div className="lg:col-span-3 space-y-6">
-            <Card className="p-8">
+            <Card id="public-info" className="p-8 scroll-mt-24">
               <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
                 <div className="relative">
                   <Avatar className="w-32 h-32 border-4 border-white shadow-xl ring-1 ring-border">
@@ -292,8 +348,9 @@ export function EditProfile() {
                         alt={user.username} 
                         className="w-full h-full object-cover"
                       />
-                    ) : null}
-                    <AvatarFallback>{userInitial}</AvatarFallback>
+                    ) : (
+                      <AvatarFallback>{userInitial}</AvatarFallback>
+                    )}
                   </Avatar>
                   <label htmlFor="avatar-upload" className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-transform active:scale-95">
                     <Camera className="w-4 h-4" />
