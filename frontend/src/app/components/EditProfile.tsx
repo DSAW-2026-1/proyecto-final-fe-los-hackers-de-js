@@ -46,6 +46,9 @@ export function EditProfile() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSeller, setIsSeller] = useState<boolean>(false);
   const [initialIsSeller, setInitialIsSeller] = useState<boolean>(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,7 +70,6 @@ export function EditProfile() {
             setSelectedFaculty(faculty.id);
             setSelectedProgram(data.career);
           } else {
-            // unrecognized value: set program but keep faculty empty to maintain unset behavior
             setSelectedFaculty("");
             setSelectedProgram(data.career);
           }
@@ -82,7 +84,6 @@ export function EditProfile() {
 
     fetchProfile();
 
-    // Scroll to section if hash exists
     if (window.location.hash) {
       setTimeout(() => {
         const id = window.location.hash.substring(1);
@@ -90,13 +91,13 @@ export function EditProfile() {
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
         }
-      }, 500); // Wait for content to load
+      }, 500);
     }
   }, []);
 
   const handleFacultyChange = (value: string) => {
     setSelectedFaculty(value);
-    setSelectedProgram(""); // Reset program when faculty changes
+    setSelectedProgram("");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,9 +112,6 @@ export function EditProfile() {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setPhotoPreview(base64String);
-        // Remove prefix (data:image/jpeg;base64,) for API if needed, 
-        // but typically API expects the raw base64 or exactly as provided.
-        // Documentation says "User image encoded in base64". Usually it means the content parts.
         const cleanBase64 = base64String.split(',')[1];
         setPhotoBase64(cleanBase64);
       };
@@ -121,10 +119,41 @@ export function EditProfile() {
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (newPassword !== confirmNewPassword) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+    if (!currentPassword || !newPassword) {
+      toast.error('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      await userService.changePassword(currentPassword, newPassword);
+      toast.success('Contraseña cambiada correctamente');
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (error) {
+      console.error('Error changing password:', error);
+      const apiError = error as ApiError;
+      
+      if (apiError.status === 401) {
+        toast.error('La contraseña actual es incorrecta');
+      } else if (apiError.status === 400) {
+        toast.error('Datos inválidos. Verifica que la contraseña nueva cumpla los requisitos');
+      } else if (apiError.status === 404) {
+        toast.error('Usuario no encontrado');
+      } else {
+        toast.error('Ocurrió un error al cambiar la contraseña');
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
-    // Validate username (alphanumeric)
     const usernameRegex = /^[a-zA-Z0-9]+$/;
     if (!usernameRegex.test(username)) {
       toast.error('El nombre de usuario debe ser alfanumérico');
@@ -135,7 +164,6 @@ export function EditProfile() {
     try {
       const updateData: UpdateProfileRequest = {};
       
-      // Only send fields that changed to avoid 400 "cannot change to same username"
       if (username !== user.username) {
         updateData.username = username;
       }
@@ -149,7 +177,6 @@ export function EditProfile() {
         updateData.photo = photoBase64;
       }
 
-      // Handle seller registration separately if toggled to true
       let newToken = null;
       if (!initialIsSeller && isSeller) {
         try {
@@ -157,8 +184,6 @@ export function EditProfile() {
           newToken = response.token;
         } catch (sellerError) {
           console.error('Error registering as seller:', sellerError);
-          // If this fails, we should probably stop the whole process or inform the user
-          // For now, we'll continue with profile updates but toast the error
           toast.error('No se pudo activar la cuenta de vendedor');
           setIsSaving(false);
           return;
@@ -171,17 +196,14 @@ export function EditProfile() {
         return;
       }
 
-      // Update regular profile data if any
       if (Object.keys(updateData).length > 0) {
         await userService.updateProfile(updateData);
       }
       
-      // Update context and token if needed
       if (newToken) {
         login(newToken);
       }
       
-      // Update context if username changed
       if (updateData.username) {
         setUserInfo({ username: updateData.username, email: user.email });
       }
@@ -195,7 +217,6 @@ export function EditProfile() {
       if (apiError.status === 409) {
         toast.error('El nombre de usuario ya está en uso');
       } else if (apiError.status === 400) {
-        // Detailed error messages from backend usually come in error.message or error response
         toast.error('Error en la solicitud. Verifica los datos.');
       } else {
         toast.error('Ocurrió un error al guardar los cambios');
@@ -239,7 +260,6 @@ export function EditProfile() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
           <aside className="lg:col-span-1">
             <div className="space-y-1">
               <Button variant="secondary" className="w-full justify-start font-semibold">
@@ -261,9 +281,7 @@ export function EditProfile() {
             </div>
           </aside>
 
-          {/* Main Content Areas */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Profile Header Edit */}
             <Card className="p-8">
               <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
                 <div className="relative">
@@ -307,7 +325,6 @@ export function EditProfile() {
               </div>
             </Card>
 
-            {/* Basic Info Container */}
             <Card className="p-8">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
@@ -363,7 +380,6 @@ export function EditProfile() {
                             {program}
                           </SelectItem>
                         ))}
-                        {/* Fallback for unrecognized or custom programs to ensure they are visible */}
                         {selectedProgram && (!selectedFaculty || !FACULTIES.find(f => f.id === selectedFaculty)?.programs.includes(selectedProgram)) && (
                           <SelectItem value={selectedProgram}>{selectedProgram}</SelectItem>
                         )}
@@ -374,7 +390,6 @@ export function EditProfile() {
               </div>
             </Card>
 
-            {/* Contact Info container */}
             <Card className="p-8">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-primary" />
@@ -390,26 +405,47 @@ export function EditProfile() {
                   </div>
                   <Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">Email Verificado ✓</Badge>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono de Contacto (Opcional)</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input id="phone" defaultValue="+57 300 456 7890" className="pl-11" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Ubicación Frecuente en Campus</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input id="location" defaultValue="Edificio de Ingeniería / Biblioteca" className="pl-11" />
-                  </div>
-                </div>
               </div>
             </Card>
 
-            {/* Seller Account Section */}
+            <Card className="p-8 scroll-mt-24" id="security-section">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary" />
+                Cambiar Contraseña
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                  <Input 
+                    id="currentPassword" 
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                  <Input 
+                    id="newPassword" 
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmNewPassword">Confirmar Nueva Contraseña</Label>
+                  <Input 
+                    id="confirmNewPassword" 
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handlePasswordChange}>Cambiar Contraseña</Button>
+              </div>
+            </Card>
+
             <Card className="p-8 scroll-mt-24" id="seller-section">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                 <Store className="w-5 h-5 text-primary" />
@@ -455,8 +491,6 @@ export function EditProfile() {
               </div>
             </Card>
 
-
-            {/* Preferences Container */}
             <Card className="p-8 scroll-mt-24" id="notification-settings">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                 <Bell className="w-5 h-5 text-primary" />
@@ -490,7 +524,6 @@ export function EditProfile() {
               </div>
             </Card>
 
-            {/* Sticky Actions */}
             <div className="flex justify-end gap-4 pt-4">
               <Button 
                 variant="outline" 

@@ -87,6 +87,12 @@ export const userService = {
       method: 'PATCH',
     });
   },
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>('/api/users/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
   async reportUser(uid: string, data: { category: string, reportTitle: string, reportBody: string }): Promise<void> {
     return apiRequest<void>(`/api/users/${uid}/report`, {
       method: 'POST',
